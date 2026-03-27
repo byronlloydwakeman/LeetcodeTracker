@@ -9,7 +9,7 @@ import {
 } from "@chakra-ui/react"
 
 import './index.css'
-import App from './App.tsx'
+import App from './App'
 
 const config = defineConfig({
   theme: {
