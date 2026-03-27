@@ -7,7 +7,7 @@
   },
   "hosting": {
     "site": "leetcodetracker-blw",
-    "public": "public",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
