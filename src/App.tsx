@@ -3,6 +3,7 @@ import './App.css';
 import { useAuth } from "./pages/auth/useAuth";
 import { Analytics } from "./pages/analytics/Analytics";
 import { Box, Spinner } from '@chakra-ui/react';
+import NotFound from "./pages/NotFound";
 
 function App() {
   const { user, loading } = useAuth();
@@ -23,6 +24,7 @@ function App() {
     <>
       <Routes>
         <Route path="/" element={<Analytics userId={user.uid} />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   )
