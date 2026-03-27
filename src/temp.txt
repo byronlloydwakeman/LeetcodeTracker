@@ -1,0 +1,356 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
+  Container,
+  Input,
+  Select,
+  VStack,
+  HStack,
+  Table,
+  Badge,
+  IconButton,
+  Heading,
+  Text,
+  SimpleGrid,
+  Card,
+  Stat,
+  createListCollection
+} from '@chakra-ui/react';
+import { Dialog } from '@chakra-ui/react';
+import { DeleteIcon } from '@chakra-ui/icons';
+
+import { db } from '../../firebase.ts';
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  deleteDoc,
+  doc,
+} from 'firebase/firestore';
+
+interface Problem {
+  id: string;
+  name: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  timeMinutes: number;
+  language: string;
+  date: string;
+  notes: string;
+}
+
+interface Stats {
+  easy: { avg: number; count: number };
+  medium: { avg: number; count: number };
+  hard: { avg: number; count: number };
+}
+
+const FAANG_TARGETS = {
+  easy: 5,
+  medium: 15,
+  hard: 30,
+};
+
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty) {
+    case 'easy':
+      return 'green';
+    case 'medium':
+      return 'orange';
+    case 'hard':
+      return 'red';
+    default:
+      return 'gray';
+  }
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: '2-digit',
+  });
+};
+
+export const LeetCodeTracker: React.FC<{ userId: string }> = ({ userId }) => {
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    easy: { avg: 0, count: 0 },
+    medium: { avg: 0, count: 0 },
+    hard: { avg: 0, count: 0 },
+  });
+
+  const [open, setOpen] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    difficulty: 'medium' as const,
+    timeMinutes: '',
+    language: 'Java',
+    notes: '',
+  });
+
+  const calculateStats = (problems: Problem[]) => {
+    const stats: Stats = {
+      easy: { avg: 0, count: 0 },
+      medium: { avg: 0, count: 0 },
+      hard: { avg: 0, count: 0 },
+    };
+
+    Object.keys(stats).forEach((difficulty) => {
+      const filtered = problems.filter((p) => p.difficulty === difficulty);
+      stats[difficulty as keyof Stats].count = filtered.length;
+      if (filtered.length > 0) {
+        const sum = filtered.reduce((acc, p) => acc + p.timeMinutes, 0);
+        stats[difficulty as keyof Stats].avg = Math.round(sum / filtered.length);
+      }
+    });
+
+    setStats(stats);
+  };
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'problems'),
+      where('userId', '==', userId),
+      orderBy('date', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs: Problem[] = [];
+      snapshot.forEach((doc) => {
+        docs.push({
+          id: doc.id,
+          ...doc.data(),
+        } as Problem);
+      });
+
+      setProblems(docs);
+      calculateStats(docs);
+    });
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  const handleAddProblem = async () => {
+    if (!formData.name || !formData.timeMinutes) {
+      window.alert('Please fill in all fields');
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, 'problems'), {
+        userId,
+        name: formData.name,
+        difficulty: formData.difficulty,
+        timeMinutes: parseInt(formData.timeMinutes),
+        language: formData.language,
+        date: new Date().toISOString().split('T')[0],
+        notes: formData.notes,
+      });
+
+      window.alert('Problem added!');
+
+      setFormData({
+        name: '',
+        difficulty: 'medium',
+        timeMinutes: '',
+        language: 'Java',
+        notes: '',
+      });
+
+      setOpen(false);
+    } catch {
+      window.alert('Failed to add problem');
+    }
+  };
+
+  const handleDeleteProblem = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'problems', id));
+      window.alert('success');
+    } catch {
+      window.alert('Failed to delete');
+    }
+  };
+
+  return (
+    <Container maxW="6xl" py={8}>
+      <VStack gap={6} align="stretch">
+        <Box>
+          <Heading size="2xl">🎯 LeetCode Tracker</Heading>
+          <Text color="gray.500">
+            Track your problem-solving times and prepare for FAANG interviews
+          </Text>
+        </Box>
+
+        <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+          {['easy', 'medium', 'hard'].map((difficulty) => {
+            const stat = stats[difficulty as keyof Stats];
+            const target = FAANG_TARGETS[difficulty as keyof typeof FAANG_TARGETS];
+            const isOnTrack = stat.avg <= target;
+
+            return (
+              <Card.Root key={difficulty}>
+                <Card.Body>
+                  <Stat.Root>
+                    <Stat.Label>
+                      <HStack>
+                        <Badge colorScheme={getDifficultyColor(difficulty)}>
+                          {difficulty}
+                        </Badge>
+                        <Text>{stat.count} problems</Text>
+                      </HStack>
+                    </Stat.Label>
+
+                    <HStack justify="space-between" mt={2}>
+                      <Box>
+                        <Text fontSize="sm">Current</Text>
+                        <Stat.ValueText>
+                          {stat.avg || '—'} min
+                        </Stat.ValueText>
+                      </Box>
+
+                      <Box textAlign="right">
+                        <Text fontSize="sm">Target</Text>
+                        <Text color={isOnTrack ? 'green.500' : 'red.500'}>
+                          {target} min {isOnTrack ? '✅' : '⚠️'}
+                        </Text>
+                      </Box>
+                    </HStack>
+                  </Stat.Root>
+                </Card.Body>
+              </Card.Root>
+            );
+          })}
+        </SimpleGrid>
+
+        <Button colorScheme="blue" size="lg" onClick={() => setOpen(true)}>
+          + Add Problem
+        </Button>
+
+        <Table.Root size="sm">
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader>Problem</Table.ColumnHeader>
+              <Table.ColumnHeader>Difficulty</Table.ColumnHeader>
+              <Table.ColumnHeader>Time</Table.ColumnHeader>
+              <Table.ColumnHeader>Language</Table.ColumnHeader>
+              <Table.ColumnHeader>Date</Table.ColumnHeader>
+              <Table.ColumnHeader></Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+
+          <Table.Body>
+            {problems.map((p) => (
+              <Table.Row key={p.id}>
+                <Table.Cell>{p.name}</Table.Cell>
+                <Table.Cell>
+                  <Badge colorScheme={getDifficultyColor(p.difficulty)}>
+                    {p.difficulty}
+                  </Badge>
+                </Table.Cell>
+                <Table.Cell>{p.timeMinutes}</Table.Cell>
+                <Table.Cell>{p.language}</Table.Cell>
+                <Table.Cell>{formatDate(p.date)}</Table.Cell>
+                <Table.Cell>
+                  <IconButton
+                    aria-label="delete"
+                    onClick={() => handleDeleteProblem(p.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </VStack>
+
+      {/* Dialog (Modal replacement) */}
+      <Dialog.Root open={open} onOpenChange={(e) => setOpen(e.open)}>
+        <Dialog.Content>
+          <Dialog.Header>Add Problem</Dialog.Header>
+
+          <Dialog.Body>
+            <VStack gap={4}>
+              <Input
+                placeholder="Problem name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+              />
+
+              <DifficultySelector />
+
+              <Input
+                type="number"
+                placeholder="Time (min)"
+                value={formData.timeMinutes}
+                onChange={(e) =>
+                  setFormData({ ...formData, timeMinutes: e.target.value })
+                }
+              />
+            </VStack>
+          </Dialog.Body>
+
+          <Dialog.Footer>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button colorScheme="blue" onClick={handleAddProblem}>
+              Add
+            </Button>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Root>
+    </Container>
+  );
+};
+
+const DifficultySelector = () => {
+    // Create a collection for the Select component
+    const collection = createListCollection({
+        items: ["Easy", "Medium", "Hard"]
+    });
+
+    return (
+        <Select.Root 
+            multiple collection={collection} 
+            size="lg"
+            width="100%"
+            onValueChange={(values) => {
+                setSelectedFacilitators(values.value);
+            }}
+        >
+            <Select.HiddenSelect />
+            <Text mt={2} color="gray.600">Facilitators</Text>
+            <Select.Control>
+                <Select.Trigger>
+                <Select.ValueText placeholder="Select facilitators" />
+                </Select.Trigger>
+                <Select.IndicatorGroup>
+                <Select.Indicator />
+                </Select.IndicatorGroup>
+            </Select.Control>
+            <Portal>
+                <Select.Positioner>
+                <Select.Content>
+                    {facilitators.map((facilitator) => (
+                    <Select.Item item={facilitator} key={facilitator}>
+                        {facilitator}
+                        <Select.ItemIndicator />
+                    </Select.Item>
+                    ))}
+                </Select.Content>
+                </Select.Positioner>
+            </Portal>
+        </Select.Root>
+    );
+}
+
+export default LeetCodeTracker;
