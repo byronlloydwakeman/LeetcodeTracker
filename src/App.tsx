@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import './App.css';
-import { useAuth } from "./pages/auth/useAuth.tsx";
+import { useAuth } from "./pages/auth/useAuth";
 import { Analytics } from "./pages/analytics/Analytics";
 import { Box, Spinner } from '@chakra-ui/react';
 
