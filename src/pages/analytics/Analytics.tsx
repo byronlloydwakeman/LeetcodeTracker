@@ -301,6 +301,7 @@ export const Analytics: React.FC<{ userId: string }> = ({ userId }) => {
                 <Text mt={2} mb={-3} ml={-400} color="gray.600">Time (min)</Text>
                 <Input
                   placeholder="Time (min)"
+                  type="number"
                   value={timeMinutes}
                   onChange={(e) =>
                     setTimeMinutes(parseInt(e.target.value))
@@ -310,6 +311,7 @@ export const Analytics: React.FC<{ userId: string }> = ({ userId }) => {
                 <Text  mt={2} mb={-3} ml={-400} color="gray.600">Time (sec)</Text>
                 <Input
                   placeholder="Time (sec)"
+                  type="number"
                   value={timeSeconds}
                   onChange={(e) =>
                     setTimeSeconds(parseInt(e.target.value))
