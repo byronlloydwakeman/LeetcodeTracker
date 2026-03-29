@@ -281,50 +281,53 @@ export const Analytics: React.FC<{ userId: string }> = ({ userId }) => {
         </Table.Root>
       </VStack>
 
-      {/* Dialog (Modal replacement) */}
       <Dialog.Root open={open} onOpenChange={(e) => setOpen(e.open)}>
-        <Dialog.Content>
-          <Dialog.Header>Add Problem</Dialog.Header>
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>Add Problem</Dialog.Header>
 
-          <Dialog.Body>
-            <VStack gap={4}>
-              <Input
-                placeholder="Problem name"
-                value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
-              />
+            <Dialog.Body>
+              <VStack gap={4}>
+                <Input
+                  placeholder="Problem name"
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value)
+                  }
+                />
 
-              <DifficultySelector setDifficulty={setDifficulty} />
+                <DifficultySelector setDifficulty={setDifficulty} />
 
-              <Input
-                placeholder="Time (min)"
-                value={timeMinutes}
-                onChange={(e) =>
-                  setTimeMinutes(parseInt(e.target.value))
-                }
-              />
+                <Text mt={2} mb={-3} ml={-400} color="gray.600">Time (min)</Text>
+                <Input
+                  placeholder="Time (min)"
+                  value={timeMinutes}
+                  onChange={(e) =>
+                    setTimeMinutes(parseInt(e.target.value))
+                  }
+                />
 
-              <Input
-                placeholder="Time (sec)"
-                value={timeSeconds}
-                onChange={(e) =>
-                  setTimeSeconds(parseInt(e.target.value))
-                }
-              />
-            </VStack>
-          </Dialog.Body>
+                <Text  mt={2} mb={-3} ml={-400} color="gray.600">Time (sec)</Text>
+                <Input
+                  placeholder="Time (sec)"
+                  value={timeSeconds}
+                  onChange={(e) =>
+                    setTimeSeconds(parseInt(e.target.value))
+                  }
+                />
+              </VStack>
+            </Dialog.Body>
 
-          <Dialog.Footer>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button colorScheme="blue" onClick={handleAddProblem}>
-              Add
-            </Button>
-          </Dialog.Footer>
-        </Dialog.Content>
+            <Dialog.Footer>
+              <Button variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="blue" onClick={handleAddProblem}>
+                Add
+              </Button>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
       </Dialog.Root>
     </Container>
   );
@@ -346,7 +349,7 @@ const DifficultySelector = (props: DifficultySelectorProps) => {
 
     return (
         <Select.Root 
-            multiple collection={collection} 
+            collection={collection} 
             size="lg"
             width="100%"
             onValueChange={(values) => {
